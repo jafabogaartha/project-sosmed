@@ -1,0 +1,133 @@
+-- 1. Buat Database Baru (Jika belum ada)
+CREATE DATABASE IF NOT EXISTS db_project_sosmed;
+USE db_project_sosmed;
+
+-- ========================================================
+-- 2. TABEL USERS (Tim)
+-- ========================================================
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'specialist', 'editor') NOT NULL,
+    avatar_color VARCHAR(50) DEFAULT 'bg-indigo-500', 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ========================================================
+-- 3. TABEL BRANDS (Daftar Produk)
+-- ========================================================
+CREATE TABLE brands (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    brand_name VARCHAR(100) NOT NULL,
+    brand_code VARCHAR(10) NOT NULL UNIQUE, 
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ========================================================
+-- 4. TABEL TEAM ASSIGNMENTS (Pembagian Tugas)
+-- ========================================================
+CREATE TABLE team_assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    brand_id INT NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_assignment (user_id, brand_id) 
+) ENGINE=InnoDB;
+
+-- ========================================================
+-- 5. TABEL CONTENT TASKS (Inti Data Konten & Analytics)
+-- ========================================================
+CREATE TABLE content_tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    brand_id INT NOT NULL,
+    creator_id INT DEFAULT NULL, -- Specialist
+    editor_id INT DEFAULT NULL,  -- Editor yang mengerjakan
+    
+    -- Identitas
+    title VARCHAR(255) NOT NULL,
+    
+    -- Platform Checkbox
+    target_tiktok TINYINT(1) DEFAULT 1,
+    target_instagram TINYINT(1) DEFAULT 1,
+    
+    -- Naskah
+    script_tiktok TEXT DEFAULT NULL,
+    caption_instagram TEXT DEFAULT NULL,
+    
+    -- Workflow Logic
+    production_mode ENUM('ready_stock', 'need_take') DEFAULT 'ready_stock',
+    status ENUM('planning', 'process_vo', 'editing', 'ready_upload', 'uploaded', 'published', 'waiting_footage') DEFAULT 'planning',
+    
+    -- Links (Bahan & Hasil)
+    link_raw_source VARCHAR(500) DEFAULT NULL,   -- Link Drive Mentahan
+    file_final_video VARCHAR(255) DEFAULT NULL,  -- Nama file (Opsional jika pakai sistem upload)
+    
+    -- Link Postingan (Dual Link)
+    url_tiktok VARCHAR(500) DEFAULT NULL,
+    url_instagram VARCHAR(500) DEFAULT NULL,
+    
+    -- DATA ANALYTICS (Scraping Result)
+    -- TikTok Metrics
+    tt_views INT DEFAULT 0,
+    tt_likes INT DEFAULT 0,
+    tt_comments INT DEFAULT 0,
+    tt_shares INT DEFAULT 0,
+    
+    -- Instagram Metrics
+    ig_views INT DEFAULT 0,
+    ig_likes INT DEFAULT 0,
+    ig_comments INT DEFAULT 0,
+    
+    -- Timestamps
+    last_scraped_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Relasi
+    FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE CASCADE,
+    FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (editor_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ========================================================
+-- 6. SEED DATA (Data Awal)
+-- ========================================================
+
+-- Insert 17 Brand
+INSERT INTO brands (brand_name, brand_code) VALUES 
+('Raja Steak', 'RS'),
+('Kopi Ibukota', 'KI'),
+('Mybestea', 'MB'),
+('Seblak Express', 'SE'),
+('Mentoast', 'MT'),
+('You need mie', 'YM'),
+('Esteh Ibukota', 'EI'),
+('Kentang Gantenk', 'KG'),
+('BeNice Coffee', 'BC'),
+('Chick Ichik', 'CI'),
+('Merlumer', 'ML'),
+('Chikuruyuk', 'CY'),
+('Tahu Nyonyor', 'TN'),
+('K-Mie', 'KM'),
+('Chocopedia', 'CP'),
+('Republik Coklat', 'RC'),
+('Matchachi', 'MC');
+
+-- Insert User Dummy (Password: '123')
+INSERT INTO users (full_name, email, password_hash, role, avatar_color) VALUES 
+('Super Admin', 'admin@kantor.com', '123', 'admin', 'bg-gray-800'),
+('Andi Specialist', 'andi@kantor.com', '123', 'specialist', 'bg-blue-500'),
+('Budi Specialist', 'budi@kantor.com', '123', 'specialist', 'bg-purple-500'),
+('Citra Editor', 'citra@kantor.com', '123', 'editor', 'bg-green-500'),
+('Dedi Editor', 'dedi@kantor.com', '123', 'editor', 'bg-teal-500');
+
+-- Insert Assignment (Contoh Pembagian Tugas)
+-- Andi pegang Raja Steak & Kopi Ibukota
+INSERT INTO team_assignments (user_id, brand_id) VALUES (2, 1), (2, 2);
+-- Citra (Editor) pegang Raja Steak
+INSERT INTO team_assignments (user_id, brand_id) VALUES (4, 1);
